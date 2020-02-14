@@ -1,0 +1,39 @@
+base {
+	log_debug = off;
+	log_info = on;
+	log = "syslog:daemon";
+	daemon = on;
+	user = redsocks;
+	group = redsocks;
+	redirector = iptables;
+}
+
+{%if socks_proxy_host and socks_proxy_port %}
+redsocks {
+	local_ip = 127.0.0.1;
+	local_port = 12345;
+	ip = {{ socks_proxy_host }};
+	port = {{ socks_proxy_port }};
+	type = socks5;
+}
+{% endif %}
+
+{%if http_proxy_host and http_proxy_port %}
+redsocks {
+	local_ip = 127.0.0.1;
+	local_port = 12380;
+	ip = {{ http_proxy_host }};
+	port = {{ http_proxy_port }};
+	type = http-relay;
+}
+{% endif %}
+
+{%if https_proxy_host and https_proxy_port %}
+redsocks {
+	local_ip = 127.0.0.1;
+	local_port = 12443;
+	ip = {{ https_proxy_host }};
+	port = {{ https_proxy_port }};
+	type = http-connect;
+}
+{% endif %}

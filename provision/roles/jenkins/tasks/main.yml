@@ -1,0 +1,59 @@
+---
+- name: Copy Jenkins related files
+  copy:
+    src: resources
+    dest: jenkins
+
+- name: Get GUID of group 'docker' in host
+  shell: awk 'BEGIN { FS=":" }; /docker/ { print $3 }' /etc/group
+  register: get_guid_result
+
+- name: Build Jenkins master's image
+  docker_image:
+    build:
+      pull: no
+      args:
+        DOCKER_GROUP_ID: "{{ get_guid_result.stdout }}"
+        http_proxy: "{{ http_proxy | default('') }}"
+        HTTP_PROXY: "{{ http_proxy | default('') }}"
+        https_proxy: "{{ https_proxy | default('') }}"
+        HTTPS_PROXY: "{{ https_proxy | default('') }}"
+        no_proxy: "{{ no_proxy | default('') }}"
+        NO_PROXY: "{{ no_proxy | default('') }}"
+      path: jenkins
+    source: build
+    name: jenkins-master
+
+- name: Create container 'jenkins-master' to init volumes
+  docker_container:
+    name: jenkins-master
+    image: jenkins-master
+    state: stopped
+    mounts:
+      - source: jenkins_home
+        target: /var/jenkins_home
+
+- name: Copy 'jenkins-master's' default configuration
+  shell: docker cp jenkins/resources/configuration/config.xml jenkins-master:/var/jenkins_home/
+    && docker cp jenkins/resources/configuration/users jenkins-master:/var/jenkins_home/users
+
+- name: Start container 'jenkins-master'
+  docker_container:
+    name: jenkins-master
+    image: jenkins-master
+    restart: yes
+    published_ports:
+      - 8080:8080
+    mounts:
+      - source: jenkins_home
+        target: /var/jenkins_home
+      - source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        type: bind
+    env:
+      http_proxy: "{{ http_proxy | default('') }}"
+      HTTP_PROXY: "{{ https_proxy | default('') }}"
+      https_proxy: "{{ https_proxy | default('') }}"
+      HTTPS_PROXY: "{{ HTTPS_PROXY | default('') }}"
+      no_proxy: "{{ no_proxy | default('') }}"
+      NO_PROXY: "{{ NO_PROXY | default('') }}"

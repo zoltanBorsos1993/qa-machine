@@ -1,0 +1,33 @@
+---
+- name: Add docker's GPG key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    id: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+
+- name: Add docker repo info
+  apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+
+- name: Install docker
+  apt:
+    name: docker-ce,docker-ce-cli,containerd.io
+    update_cache: yes
+
+- name: Add group 'docker'
+  group:
+    name: docker
+
+- name: Administrator to group 'docker'
+  user:
+    name: adminz
+    groups:
+      - docker
+
+- name: Install pip
+  apt:
+    name: python3-pip
+
+- name: Install Python wrapper for Docker
+  pip:
+    executable: /usr/bin/pip3
+    name: docker

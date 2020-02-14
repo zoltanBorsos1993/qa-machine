@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+
+import sys
+import argparse
+import json
+import os
+import urllib.parse
+import subprocess
+import re
+import ipaddress
+
+
+ARGS = None
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Script to get QA machine\'s inventory.'
+    )
+    parser.add_argument('-l', '--list', dest='list', action='store_true', help='List nodes.')
+    parser.add_argument('--host', dest='host', const='qa-machine', nargs='?', action='store', help='Name of the node to query information about.')
+
+    global ARGS
+    ARGS = parser.parse_args()
+
+    if not ARGS.list and not ARGS.host:
+        print('Please, use the flags "-h" or "--help" for usage information.')
+        sys.exit(0)
+
+    if ARGS.list and ARGS.host:
+        print('Cannot get node specific information and list of nodes the same time. These flags are mutally exclusive!', file=sys.stderr)
+        print('Please, use the flags "-h" or "--help" for usage information.', file=sys.stderr)
+        sys.exit(1)
+
+
+def get_env_var_case_insensitively(env_var_name):
+    with_lowercase_name = os.getenv(env_var_name.lower(), None)
+    with_uppercase_name = os.getenv(env_var_name.upper(), None)
+    if with_lowercase_name:
+        return with_lowercase_name
+    elif with_uppercase_name:
+        return with_uppercase_name
+    else:
+        return ""
+
+
+def get_http_proxy_info_from_env():
+    return urllib.parse.urlparse(get_env_var_case_insensitively('http_proxy'))
+
+
+def get_https_proxy_info_from_env():
+    return urllib.parse.urlparse(get_env_var_case_insensitively('https_proxy'))
+
+
+def get_socks_proxy_info_from_env():
+    return urllib.parse.urlparse(get_env_var_case_insensitively('socks_proxy'))
+
+
+def list_hosts():
+    hosts = {'all': {'hosts': [
+        'qa-machine'
+    ]}}
+    print(json.dumps(hosts, indent=2))
+    sys.exit(0)
+
+
+def get_ansible_host():
+    result = subprocess.run(['virsh', 'net-dhcp-leases', 'qa-network'], capture_output=True)
+    result.check_returncode()
+    for l in str(result.stdout, 'utf-8').splitlines():
+        if 'qa-machine' in l:
+            return str(ipaddress.ip_interface(re.split(r'\s+', l)[5]).ip)
+    raise RuntimeError('No domain found with the name "qa-machine"')
+
+
+def get_host():
+    if ARGS.host != 'qa-machine':
+        print('For the time being, only the node with the name "qa-machine" is supported.', file=sys.stderr)
+        sys.exit(1)
+
+    http_proxy = get_http_proxy_info_from_env()
+    https_proxy = get_https_proxy_info_from_env()
+    socks_proxy = get_socks_proxy_info_from_env()
+
+    qa_machine = {
+      'ansible_host': get_ansible_host(),
+      'ansible_user': 'adminz',
+      'ansible_become': True,
+      'ansible_become_method': 'sudo',
+      'ansible_become_user': 'root',
+      'http_proxy_host': http_proxy.hostname,
+      'http_proxy_port': http_proxy.port,
+      'http_proxy': http_proxy.geturl(),
+      'https_proxy_host': https_proxy.hostname,
+      'https_proxy_port': https_proxy.port,
+      'https_proxy': https_proxy.geturl(),
+      'socks_proxy_host': socks_proxy.hostname if socks_proxy.hostname else "",
+      'socks_proxy_port': socks_proxy.port if socks_proxy.port else "",
+      'socks_proxy': socks_proxy.geturl(),
+    }
+    print(json.dumps(qa_machine, indent=2))
+    sys.exit(0)
+
+
+parse_args()
+
+if ARGS.list:
+    list_hosts()
+
+if ARGS.host:
+    get_host()

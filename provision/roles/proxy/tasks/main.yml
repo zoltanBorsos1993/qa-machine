@@ -1,0 +1,5 @@
+---
+- name: Install proxy
+  apt:
+    name: nginx
+    update_cache: yes

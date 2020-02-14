@@ -1,0 +1,13 @@
+---
+- hosts: qa-machine
+  tasks:
+    - name: Delete container 'jenkins-master'
+      docker_container:
+        name: jenkins-master
+        state: absent
+        force_kill: yes
+
+    - name: Delete volume 'jenkins_home'
+      docker_volume:
+        volume_name: jenkins_home
+        state: absent
