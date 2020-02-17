@@ -22,10 +22,6 @@
     groups:
       - docker
 
-- name: Install pip
-  apt:
-    name: python3-pip
-
 - name: Install Python wrapper for Docker
   pip:
     executable: /usr/bin/pip3

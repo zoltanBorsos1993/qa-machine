@@ -1,0 +1,9 @@
+---
+- name: Install Django
+  pip:
+    executable: /usr/bin/pip3
+    name: Django
+
+- name: Install FastCGI
+  apt:
+    name: python-flup
