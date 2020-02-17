@@ -1,8 +1,12 @@
 ---
 - name: Copy Jenkins related files
   copy:
-    src: resources
+    src: "{{ item }}"
     dest: jenkins
+  loop:
+    - resources
+    - docker-env
+    - Dockerfile
 
 - name: Get GUID of group 'docker' in host
   shell: awk 'BEGIN { FS=":" }; /docker/ { print $3 }' /etc/group
