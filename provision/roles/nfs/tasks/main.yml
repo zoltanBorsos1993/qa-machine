@@ -1,0 +1,22 @@
+---
+- name: Install NFS server
+  apt:
+    name: nfs-kernel-server
+
+- name: Create dir structure
+  file:
+    path: /srv/shared
+    state: directory
+    owner: nobody
+    group: nogroup
+
+- name: Copy configuration
+  copy:
+    src: exports
+    dest: /etc/exports
+
+- name: Enable and restart systemd service
+  systemd:
+    enabled: yes
+    name: nfs-server
+    state: restarted

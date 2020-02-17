@@ -1,4 +1,5 @@
 ---
 - hosts: qa-machine
   roles:
+    - common
     - tcp-to-proxy
