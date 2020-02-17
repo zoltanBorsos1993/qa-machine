@@ -5,10 +5,11 @@
 
 - name: Create dir structure
   file:
-    path: /srv/shared
+    path: /srv/www/
     state: directory
     owner: nobody
     group: nogroup
+    mode: o+rwx
 
 - name: Copy configuration
   copy:
